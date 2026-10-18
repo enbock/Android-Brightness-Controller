@@ -2,7 +2,6 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Draft — awaiting review |
 | **Owner** | Product Owner |
 | **Created** | 2026-10-11 |
 | **Platform** | Android, minimum and target SDK: Android 16 (API 36) |
@@ -74,42 +73,42 @@ working — often without the user noticing.
 
 ## Feature Breakdown
 
-Each feature below becomes its own `docs/feature-<slug>.md` document, written as user stories with
+Each feature below becomes its own `docs/Epic-<Slug>/Feature-<Slug>/Feature-<Slug>.md` document, written as user stories with
 acceptance criteria, and is planned/implemented individually.
 
-### [F1 — Ambient Light Sensing](./feature-ambient-light-sensing.md)
+### [F1 — Ambient Light Sensing](./Feature-AmbientLightSensing/Feature-AmbientLightSensing.md)
 Read the ambient light sensor continuously and expose a reliable, throttled lux stream.
 *Covers: sensor availability detection, reading cadence, noise rejection.*
 
-### [F2 — Automatic Brightness Control](./feature-automatic-brightness-control.md)
+### [F2 — Automatic Brightness Control](./Feature-AutomaticBrightnessControl/Feature-AutomaticBrightnessControl.md)
 Convert the measured lux into a system screen brightness value and apply it through
 `WRITE_SETTINGS`.
 *Covers: the lux → brightness response curve, clamping to valid device ranges (min/max, and never 0),
 and writing to `Settings.System.SCREEN_BRIGHTNESS`.*
 
-### [F3 — Manual Brightness Offset](./feature-manual-brightness-offset.md)
+### [F3 — Manual Brightness Offset](./Feature-ManualBrightnessOffset/Feature-ManualBrightnessOffset.md)
 Let the user shift the automatically computed brightness up or down by a configurable amount, so the
 perceived result can be corrected without giving up automation.
 *Covers: offset range, immediate re-application, persistence across restarts.*
 
-### [F4 — Response Tuning](./feature-response-tuning.md)
+### [F4 — Response Tuning](./Feature-ResponseTuning/Feature-ResponseTuning.md)
 Let the user control how quickly the brightness follows changes in ambient light.
 *Covers: smoothing/damping parameter, debounce against sensor noise, immediate vs. gradual ramping,
 and avoiding oscillation.*
 
-### [F5 — Background Service](./feature-background-service.md)
+### [F5 — Background Service](./Feature-BackgroundService/Feature-BackgroundService.md)
 Run the whole control loop as a foreground service with a persistent notification so the system does
 not reclaim it.
 *Covers: foreground service + service type declaration, persistent notification, battery-optimization
 exemption request, restart-on-task-removed behaviour, and clean shutdown.*
 
-### [F6 — Permissions & Setup Flow](./feature-permissions-setup-flow.md)
+### [F6 — Permissions & Setup Flow](./Feature-PermissionsSetupFlow/Feature-PermissionsSetupFlow.md)
 Guide the user through granting `WRITE_SETTINGS`, `POST_NOTIFICATIONS` and the battery-optimization
 exemption, and explain what each one is for.
 *Covers: first-run onboarding, per-permission explain/request/retry, degraded-mode messaging when a
 permission is missing, and detecting devices without a light sensor.*
 
-### [F7 — Status Dashboard & Service Control](./feature-status-dashboard.md)
+### [F7 — Status Dashboard & Service Control](./Feature-StatusDashboard/Feature-StatusDashboard.md)
 Show live lux, the currently applied brightness, the active offset/response settings and the service
 state, and let the user start and stop the controller.
 *Covers: start/stop control, live readouts, clear indication of whether the app is currently allowed

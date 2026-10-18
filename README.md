@@ -37,7 +37,7 @@ the setup state; from there you start and stop the controller and reach the sett
 
 > **Note:** the minimum SDK is deliberately API 36. The app **cannot** be installed on Android 15 or
 > older devices. This is an intentional scope decision of the project (see
-> [`docs/EPIC-ambient-brightness-controller.md`](docs/EPIC-ambient-brightness-controller.md), decision D2).
+> [`docs/Epic-AmbientBrightnessController/Epic-AmbientBrightnessController.md`](docs/Epic-AmbientBrightnessController/Epic-AmbientBrightnessController.md), decision D2).
 
 The toolchain versions (AGP, Kotlin, Compose BOM) are pinned in
 [`gradle/libs.versions.toml`](gradle/libs.versions.toml), which is the single source of truth.
@@ -121,7 +121,7 @@ Rules enforced by tests:
 
 Every interface is owned by `core` and implemented in `infrastructure`; the composition root wires the
 concrete implementations and injects them inwards. See
-[`docs/architecture-structure-alignment.md`](docs/architecture-structure-alignment.md) for the full
+[`docs/Architecture-StructureAlignment.md`](docs/Architecture-StructureAlignment.md) for the full
 rationale.
 
 ---
@@ -155,18 +155,19 @@ progress**, because the connected task reinstalls the app:
 
 ## Documentation
 
-The `docs/` folder is the design record: an epic plus one document per feature, each with user stories,
-acceptance criteria, a technical design and completed implementation tasks.
+The `docs/` folder is the design record: an epic plus one EPIC folder containing one folder per feature, each with a feature
+document containing user stories, acceptance criteria and technical design. Individual implementation
+tasks and their notes live in that feature's `Tasks/` folder.
 
-- [EPIC — Ambient Brightness Controller](docs/EPIC-ambient-brightness-controller.md) — scope, goals, key decisions
-- [Architecture structure alignment](docs/architecture-structure-alignment.md) — layering, conventions, guards
-- [F1 — Ambient Light Sensing](docs/feature-ambient-light-sensing.md)
-- [F2 — Automatic Brightness Control](docs/feature-automatic-brightness-control.md)
-- [F3 — Manual Brightness Offset](docs/feature-manual-brightness-offset.md)
-- [F4 — Response Tuning](docs/feature-response-tuning.md)
-- [F5 — Background Service](docs/feature-background-service.md)
-- [F6 — Permissions & Setup Flow](docs/feature-permissions-setup-flow.md)
-- [F7 — Status Dashboard & Service Control](docs/feature-status-dashboard.md)
+- [EPIC — Ambient Brightness Controller](docs/Epic-AmbientBrightnessController/Epic-AmbientBrightnessController.md) — scope, goals, key decisions
+- [Architecture structure alignment](docs/Architecture-StructureAlignment.md) — layering, conventions, guards
+- [F1 — Ambient Light Sensing](docs/Epic-AmbientBrightnessController/Feature-AmbientLightSensing/Feature-AmbientLightSensing.md)
+- [F2 — Automatic Brightness Control](docs/Epic-AmbientBrightnessController/Feature-AutomaticBrightnessControl/Feature-AutomaticBrightnessControl.md)
+- [F3 — Manual Brightness Offset](docs/Epic-AmbientBrightnessController/Feature-ManualBrightnessOffset/Feature-ManualBrightnessOffset.md)
+- [F4 — Response Tuning](docs/Epic-AmbientBrightnessController/Feature-ResponseTuning/Feature-ResponseTuning.md)
+- [F5 — Background Service](docs/Epic-AmbientBrightnessController/Feature-BackgroundService/Feature-BackgroundService.md)
+- [F6 — Permissions & Setup Flow](docs/Epic-AmbientBrightnessController/Feature-PermissionsSetupFlow/Feature-PermissionsSetupFlow.md)
+- [F7 — Status Dashboard & Service Control](docs/Epic-AmbientBrightnessController/Feature-StatusDashboard/Feature-StatusDashboard.md)
 
 ---
 
