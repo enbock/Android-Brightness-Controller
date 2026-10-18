@@ -1,6 +1,6 @@
 # T5 — Persistence, battery-optimization client and boot restart
 
-**Completion:** Complete
+**Completion:** Not completed — reported bug follow-up required
 
 ## Dependencies
 
@@ -89,3 +89,21 @@ The verification criteria are recorded in the `Verify:` clause of the implementa
   → **BUILD SUCCESSFUL** (61 actionable tasks); `:infrastructure` unit tests 12 classes / 45 tests,
   0 failures, 0 errors, 0 skipped (the four T5 test classes add 13 tests); `:app:assembleDebug`
   compiles/links. No `:core` change.
+
+## Follow-up — prove boot start resumes the controller
+
+- [ ] Extend boot-restart verification beyond asserting that the receiver calls
+  `ContextCompat.startForegroundService`. That proves only that Android is asked to create the
+  foreground service; `ForegroundBrightnessService.onStartCommand()` currently promotes a
+  notification without invoking the F5 lifecycle or F2 controller.
+- [ ] Reconcile persisted `desiredRunning` through the idempotent F5 recovery path: true must resume
+  the controller with persisted settings and publish live state, while false must not start a
+  controller or write brightness. Keep the synchronous receiver quick and preserve credential-storage
+  availability constraints.
+- **Dependencies:** F5 T4 sticky-restart handoff and T6 composition/lifecycle recovery (the existing
+  persistence store and receiver implementation in this task are already present).
+- **Size:** S.
+- **Verification:** unit/integration test follows the boot receiver's start request through the
+  recovery contract for desired-running true and false; device/emulator boot test confirms foreground
+  status, controller sampling/writes and dashboard state independently. Test repeated starts for
+  idempotency.

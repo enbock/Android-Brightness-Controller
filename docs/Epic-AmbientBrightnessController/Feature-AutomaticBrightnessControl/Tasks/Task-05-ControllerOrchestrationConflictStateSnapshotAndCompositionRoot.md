@@ -1,6 +1,6 @@
 # T5 — Controller orchestration, conflict state, snapshot and composition root
 
-**Completion:** Complete
+**Completion:** Not completed — reported bug follow-up required
 
 ## Dependencies
 
@@ -102,3 +102,20 @@ The verification criteria are recorded in the `Verify:` clause of the implementa
   (`builtInAdaptiveBrightnessModeFollowsTheSystemSetting`, `controllerStatusAndAdaptiveBrightnessConflictAreCollectable`)
   but no emulator or device is attached, so they were only compiled. They need the usual
   `adb shell appops set com.ambientbrightness.app WRITE_SETTINGS allow` grant before they run.
+
+## Follow-up — single ambient-light collection owner
+
+- [ ] Replace the competing cold-flow subscriptions across the F1 Activity collector, F2 controller,
+  and F7 dashboard with one explicit sensor collection owner and sample fan-out. Keep the controller
+  subscribed for F5's active lifetime and let dashboard/activity subscriptions observe that shared
+  stream; cancellation of an observer must not call a global stop that cancels F5's stream.
+- [ ] Ensure the chosen owner still unregisters the physical sensor exactly once when the final
+  consumer/lifecycle ends, and preserve screen-off collection policy without requiring a lock/unlock
+  cycle to restart brightness control.
+- **Dependencies:** coordinate with F7 T2, which must consume the shared sample stream; preserve F5
+  ownership when changing Activity lifecycle cleanup.
+- **Size:** M.
+- **Verification:** fake-driven tests start controller, Activity and dashboard consumers in multiple
+  orders; one sensor registration emits to both the F2 writer and F7 lux readout; first valid sample
+  after Start produces a write without locking/unlocking; cancelling Activity/dashboard observation
+  does not stop the active F5 controller; final stop unregisters the sensor.

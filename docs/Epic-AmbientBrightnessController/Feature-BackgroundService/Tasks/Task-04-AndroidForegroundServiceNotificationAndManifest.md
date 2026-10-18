@@ -1,6 +1,6 @@
 # T4 — Android foreground service, notification and manifest
 
-**Completion:** Complete
+**Completion:** Not completed — reported bug follow-up required
 
 ## Dependencies
 
@@ -115,3 +115,20 @@ The verification criteria are recorded in the `Verify:` clause of the implementa
   `adb shell appops set com.ambientbrightness.app WRITE_SETTINGS allow`. The connected task reinstalls
   the app, which discards a previously set appop, so the grant must be applied *while the run is in
   progress* — the F2 document already records the same finding.
+
+## Follow-up — sticky restart lifecycle handoff
+
+- [ ] Add an explicit, idempotent handoff from `ForegroundBrightnessService.onStartCommand()` on a
+  sticky/null-intent recreation to the app/core lifecycle recovery path. The current implementation
+  only promotes a `Starting` notification and returns `START_STICKY`; notification recreation must
+  not be treated as proof that the controller resumed.
+- [ ] Keep foreground promotion within Android's startup window, distinguish a genuine platform
+  restart from a normal duplicate start, and report failure to bind/recover so the core/dashboard
+  cannot claim Running based solely on the notification.
+- **Dependencies:** F5 T6 restart reconciliation and persistent `ControllerStateStore`; coordinate the
+  event contract with the app composition/bridge without adding Android dependencies to `:core`.
+- **Size:** M.
+- **Verification:** platform-facing tests cover null-intent service recreation with both
+  `desiredRunning=true` and false through the recovery contract; verify one foreground promotion,
+  idempotent repeated callbacks, and no controller action when false. Run on-device/emulator as part
+  of T6's process-recreation scenario.

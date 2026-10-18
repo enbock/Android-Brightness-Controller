@@ -247,13 +247,41 @@ states. `:infrastructure` adapters are covered by one instrumented test that wri
 value on a device/emulator with the permission granted; `Dummy*` adapters let `:app` run without
 hardware. No Compose tests.
 
+### Reported bug 1 — competing ambient-light collections
+
+The current composition has several callers independently collecting the cold
+`AmbientLightService.start()` flow: the F2 control loop, the Activity's F1 `AmbientLightCollector`,
+and F7's dashboard lux collector. `DefaultAmbientLightService` serializes those sessions with one
+mutex and holds the lock until the active stream is cancelled; it does not multicast samples.
+Consequently, an earlier long-lived UI collection can hold the sensor session while F2 waits for
+the next session and receives no lux samples. `MainActivity.onStop()` also calls the component's
+global `service.stop()`, which can cancel a session used by F2 without restarting it until its screen
+state collector receives another transition. The user clarified that the reported off/on cycle means
+locking and unlocking the device. These mechanisms are consistent with control beginning only after
+that lifecycle/screen-state cycle; no device reproduction is claimed.
+
+Source evidence: `app/src/main/kotlin/com/ambientbrightness/app/MainActivity.kt` (`onStart`,
+`onStop`); `app/src/main/kotlin/com/ambientbrightness/app/AmbientLightSensing/Collector/AmbientLightCollector.kt`
+(`collect`); `core/src/main/kotlin/com/ambientbrightness/core/AutomaticBrightnessControl/BrightnessControllerUseCase/BrightnessControllerUseCase.kt`
+(`controlLoop`); `app/src/main/kotlin/com/ambientbrightness/app/StatusDashboard/Adapter/DashboardStateCollector.kt`
+(`latestLux`); and `core/src/main/kotlin/com/ambientbrightness/core/AmbientLightSensing/AmbientLightService/DefaultAmbientLightService.kt`
+plus `.../Task/CollectionSessionRegistry.kt` (serialized session lock and cancellation).
+
+The F2/F1/F7 integration must have one explicit collection owner and fan out each accepted sample to
+the controller and live dashboard, rather than independently collecting the cold sensor flow.
+Lifecycle cancellation must target only the UI subscription, not stop the service-wide sensor session
+while F5 still owns the controller. Keep the existing sensor cleanup guarantee when the final owner
+stops. Verify with a fake that starts the Activity/dashboard and controller consumers in either order:
+one sensor registration, each sample reaches F2 and F7, Start yields a brightness write on the first
+valid sample without a screen cycle, and stopping the UI consumer does not cancel F5's active control.
+
 ## Task Breakdown
 
 - [x] [T1 — Domain model & boundary interfaces](./Tasks/Task-01-DomainModelBoundaryInterfaces.md)
 - [x] [T2 — Lux→brightness mapping curve and hysteresis](./Tasks/Task-02-LuxBrightnessMappingCurveAndHysteresis.md)
 - [x] [T3 — Device range resolution, scaling, clamping and dead-band](./Tasks/Task-03-DeviceRangeResolutionScalingClampingAndDeadBand.md)
 - [x] [T4 — System brightness writer, permission checker and failure handling](./Tasks/Task-04-SystemBrightnessWriterPermissionCheckerAndFailureHandling.md)
-- [x] [T5 — Controller orchestration, conflict state, snapshot and composition root](./Tasks/Task-05-ControllerOrchestrationConflictStateSnapshotAndCompositionRoot.md)
+- [ ] [T5 — Controller orchestration, conflict state, snapshot and composition root](./Tasks/Task-05-ControllerOrchestrationConflictStateSnapshotAndCompositionRoot.md) — follow-up: establish a single shared ambient-light collection for controller and dashboard consumers.
 
 ## Suggested Implementation Order
 

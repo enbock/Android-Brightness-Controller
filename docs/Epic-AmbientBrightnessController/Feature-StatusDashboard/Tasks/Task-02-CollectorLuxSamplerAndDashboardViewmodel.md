@@ -1,6 +1,6 @@
 # T2 — Collector, lux sampler and dashboard ViewModel
 
-**Completion:** Complete
+**Completion:** Not completed — reported bug follow-up required
 
 ## Dependencies
 
@@ -71,3 +71,18 @@ The verification criteria are recorded in the `Verify:` clause of the implementa
   `$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot'` then
   `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain` → **BUILD SUCCESSFUL**, 11 classes /
   49 tests, 0 failures (T2 adds 3 classes / 13 tests). `:core` was not touched.
+
+## Follow-up — consume the shared lux stream
+
+- [ ] Remove the dashboard's independent `AmbientLightService.start()` session in
+  `DashboardStateCollector.latestLux()` and consume the shared/fanned-out F1 sample flow established
+  by F2 T5. Preserve current sampling, stale-value clearing and active-only readout semantics.
+- [ ] Ensure dashboard collection start/stop only attaches/detaches a read-only observer; it must
+  not acquire the sensor session mutex ahead of F2 or stop the F5-owned controller stream.
+- **Dependencies:** F2 T5 single collection owner/fan-out; preserve existing state gating on F5
+  `Starting`/`Running`.
+- **Size:** S.
+- **Verification:** collector tests assert one physical sensor registration when F2 and F7 both
+  observe; samples reach the dashboard and brightness writer regardless of subscription order;
+  stopping dashboard observation leaves the active controller receiving samples; stopped F5 still
+  clears the displayed live value.

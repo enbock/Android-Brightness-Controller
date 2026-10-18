@@ -238,14 +238,39 @@ is a short-lived optimistic state reconciled by the next F5 state (no timeout-ba
 - **Cannot be unit-tested**: real foreground-service lifecycle / system-initiated stop, physical sensor
   behaviour, on-device DataStore I/O and the real `SCREEN_BRIGHTNESS` write (covered by F1/F2/F5 tests).
 
+### Reported bugs 1 and 2 — live readout and process-resume state
+
+F7's `DashboardStateCollector.latestLux()` independently calls `AmbientLightService.start()` while
+the service is Starting/Running. Because F2 and the Activity collector also collect that cold flow
+and `DefaultAmbientLightService` serializes sessions instead of broadcasting samples, the dashboard
+can starve the controller as well as fail to show live lux. The dashboard must consume the shared
+sample stream defined by the F2/F1 integration task; it must not create a competing sensor
+registration. Test consumer startup order permutations and prove the first sensor sample is available
+to both the brightness writer and dashboard while maintaining only one physical sensor listener.
+Source evidence: `app/src/main/kotlin/com/ambientbrightness/app/StatusDashboard/Adapter/DashboardStateCollector.kt`
+(`latestLux`) independently calls `ambientLightService.start()`, while F2's
+`core/src/main/kotlin/com/ambientbrightness/core/AutomaticBrightnessControl/BrightnessControllerUseCase/BrightnessControllerUseCase.kt`
+also collects that service flow.
+
+The user's reported reopening symptom is uncertain: it may have been a service-unavailable dashboard
+state or general app unresponsiveness, and is not claimed as reproduced. F7's ON_RESUME hook currently
+invokes only `AppSetupService.refresh()`. If a new process was created, F5's fresh state flow starts at
+`Stopped`; observing that StateFlow directly is not reconciliation with persisted `desiredRunning` or
+an Android service restarted with a null intent. After F5 implements restart recovery, the dashboard
+must collect that recovered live state and display current applied brightness/lux, or an honest
+stopped/error state when recovery does not succeed. Verify process/service recovery and UI
+responsiveness separately after close/reopen following a platform process kill with
+`desiredRunning=true`, and separately with it false; assert no stale running label and no invented
+live readout in the false case.
+
 ## Task Breakdown
 
 - [x] [T1 — UI state model and pure mapper](./Tasks/Task-01-UiStateModelAndPureMapper.md)
-- [x] [T2 — Collector, lux sampler and dashboard ViewModel](./Tasks/Task-02-CollectorLuxSamplerAndDashboardViewmodel.md)
+- [ ] [T2 — Collector, lux sampler and dashboard ViewModel](./Tasks/Task-02-CollectorLuxSamplerAndDashboardViewmodel.md) — follow-up: observe the shared lux stream without opening a competing sensor session.
 - [x] [T3 — Settings ViewModel](./Tasks/Task-03-SettingsViewmodel.md)
 - [x] [T4 — Dashboard screen, sub-views and strings](./Tasks/Task-04-DashboardScreenSubViewsAndStrings.md)
 - [x] [T5 — Settings screen, navigation and reset affordance](./Tasks/Task-05-SettingsScreenNavigationAndResetAffordance.md)
-- [x] [T6 — Resume reconciliation, error/clamp integration and DI](./Tasks/Task-06-ResumeReconciliationErrorClampIntegrationAndDi.md)
+- [ ] [T6 — Resume reconciliation, error/clamp integration and DI](./Tasks/Task-06-ResumeReconciliationErrorClampIntegrationAndDi.md) — follow-up: reconcile F5 after process recreation before presenting dashboard state on resume.
 
 ## Suggested Implementation Order
 

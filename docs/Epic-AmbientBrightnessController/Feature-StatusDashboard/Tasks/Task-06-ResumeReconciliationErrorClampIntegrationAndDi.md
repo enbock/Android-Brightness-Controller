@@ -1,6 +1,6 @@
 # T6 — Resume reconciliation, error/clamp integration and DI
 
-**Completion:** Complete
+**Completion:** Not completed — reported bug follow-up required
 
 ## Dependencies
 
@@ -71,7 +71,8 @@ The verification criteria are recorded in the `Verify:` clause of the implementa
   :app:assembleDebugAndroidTest :infrastructure:assembleDebugAndroidTest --no-daemon --console=plain`
   → **BUILD SUCCESSFUL**, 0 failures; `:core` 33 classes / 240 tests, `:infrastructure` 13 / 48,
   `:app` 16 / 67 (355 tests total).
-- **Feature status: T1–T6 are complete**, so every user story of F7 has a verified implementation.
+- **Original implementation status:** at the time these verification notes were recorded, T1–T6
+  had been marked complete. The current reported-bug follow-up below marks T2 and T6 incomplete.
   AC1.1–AC1.4 are covered by T1/T2/T4's tests, AC2.1–AC2.3 by T2/T4, AC3.1–AC3.3 by T1/T2/T4/T6, and
   AC4.1–AC4.4 by T3/T5/T6. Not verifiable without a device (stated, not worked around): the real
   foreground-service lifecycle, the real system-initiated kill and the physical sensor — the
@@ -79,3 +80,18 @@ The verification criteria are recorded in the `Verify:` clause of the implementa
 - **Cross-feature note:** `recordStoppedBySystem()` is an additive F5 API. F5's own design anticipated
   exactly this hook ("expose a documented way to record it … only if it does not widen the
   `BrightnessBackgroundService` interface"); without it F7's AC3.3 could not be satisfied end to end.
+
+## Follow-up — separate service reconciliation from UI resume
+
+- [ ] Keep the ON_RESUME refresh for F6, and additionally ensure F7 observes authoritative F5
+  lifecycle state after F5 T6 performs process-recreation recovery. Do not treat a newly constructed
+  StateFlow's default `Stopped` as proof that a persisted-running service was stopped.
+- [ ] Add coverage that distinguishes (a) Android service/controller recovery, (b) dashboard state
+  reconciliation, and (c) general Activity/UI responsiveness; report the actual stopped/error state
+  if recovery fails rather than a cached running value.
+- **Dependencies:** F5 T6 process-recreation recovery; F7 T2 shared live-lux stream.
+- **Size:** S.
+- **Verification:** after process recreation, open/resume the dashboard and assert `desiredRunning`
+  true produces live Running/applied-brightness/lux state only after the controller is active; with
+  the flag false show Stopped with no live lux. Independently assert Activity renders/responds. Test
+  state collection with fakes and run the process-kill scenario on a device/emulator.

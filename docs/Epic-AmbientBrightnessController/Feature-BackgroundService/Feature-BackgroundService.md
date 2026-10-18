@@ -209,14 +209,49 @@ interface BatteryOptimizationClient { val isExempt: Flow<Boolean>; fun requestEx
 
 `:core` (JVM): `BackgroundServiceUseCase` is driven by fakes of `ForegroundServiceHost`, `ControllerStateStore`, `BatteryOptimizationClient` and F2's `AutomaticBrightnessController`, asserting start order (foreground → controller), stop order (controller → restore → foreground), idempotency, and that nothing happens on a redundant stop. `BackgroundNotificationBuilder` is unit-tested for every `BackgroundServiceState` value and the stop action. `:infrastructure`: instrumented test starting `ForegroundBrightnessService` (service is foreground, notification ongoing, stop action cancels it) and one `BootCompletedReceiver` test with a stubbed `ControllerStateStore`. `Dummy*` adapters keep `:app` runnable without a device. No Compose UI tests (F6/F7 own UI).
 
+### Reported bugs 1 and 2 — service/control ownership and process recreation
+
+For bug 1, F5 starts the F2 controller, but F2 currently competes with the Activity and dashboard for
+the single serialized ambient-light session (documented in F2's technical design above). F5's
+composition/lifecycle work must preserve a single shared sample source; Activity lifecycle cleanup
+must not cancel a session still required by the running background controller.
+
+For bug 2, the user's recollection of the exact dashboard symptom is uncertain: the app may have
+shown a service-unavailable state, or may simply have been unresponsive. Do not treat either
+user-visible outcome as reproduced. A source-traced failure path exists if Android recreated the app
+process for a sticky service restart: `BackgroundServiceUseCase` initializes its `StateFlow` to
+`Stopped` and `active` to false for every new process. Although `AndroidControllerStateStore`
+persists `desiredRunning`, `ForegroundBrightnessService.onStartCommand()` handles a sticky/null-intent
+restart only by promoting a `Starting` notification and returning `START_STICKY`; it does not call
+`BackgroundServiceUseCase.start()`. `MainActivity`'s current resume reconciler refreshes only F6 setup
+requirements. In that conditional path a foreground notification can exist while the new app graph
+reports `Stopped` and has no F2 control loop. If the process was not recreated, these facts do not
+explain the uncertain symptom; UI responsiveness still needs separate diagnosis.
+
+Source evidence: `core/src/main/kotlin/com/ambientbrightness/core/BackgroundServiceUseCase/BackgroundServiceUseCase.kt`
+initializes `mutableState` and `active`; `infrastructure/src/main/kotlin/com/ambientbrightness/infrastructure/BackgroundService/ControllerStateStore/Android/AndroidControllerStateStore.kt`
+persists `desiredRunning`; `infrastructure/src/main/kotlin/com/ambientbrightness/infrastructure/BackgroundService/ForegroundServiceHost/ForegroundBrightnessService.kt`
+handles the nullable restart intent; and `app/src/main/kotlin/com/ambientbrightness/app/StatusDashboard/View/Task/ResumeReconciler.kt`
+only calls F6 `setupService.refresh()`.
+
+Recovery must be idempotently coordinated across the platform service, app composition root and
+`BackgroundServiceUseCase`: when a process/service is recreated and persisted `desiredRunning` is
+true, restart the controller with the persisted settings and reconcile the actual service/dashboard
+state; when false, do not start it. Reopening the Activity must expose live F5/F2 state rather than a
+cached pre-kill value. Test both true and false persistence cases, repeated restart signals, and a
+real process recreation on an emulator/device. Distinguish a service-only recovery failure from an
+Activity/UI hang by independently asserting process/service lifecycle, controller collection/writes,
+and rendered dashboard state. A sticky service that merely recreates its notification is not
+sufficient evidence of controller recovery.
+
 ## Task Breakdown
 
 - [x] [T1 — Domain model, state and boundary interfaces](./Tasks/Task-01-DomainModelStateAndBoundaryInterfaces.md)
 - [x] [T2 — Notification content and state mapping](./Tasks/Task-02-NotificationContentAndStateMapping.md)
 - [x] [T3 — Lifecycle orchestration and brightness restoration](./Tasks/Task-03-LifecycleOrchestrationAndBrightnessRestoration.md)
-- [x] [T4 — Android foreground service, notification and manifest](./Tasks/Task-04-AndroidForegroundServiceNotificationAndManifest.md)
-- [x] [T5 — Persistence, battery-optimization client and boot restart](./Tasks/Task-05-PersistenceBatteryOptimizationClientAndBootRestart.md)
-- [x] [T6 — Composition root, state collector and restart-after-kill hardening](./Tasks/Task-06-CompositionRootStateCollectorAndRestartAfterKillHardening.md)
+- [ ] [T4 — Android foreground service, notification and manifest](./Tasks/Task-04-AndroidForegroundServiceNotificationAndManifest.md) — follow-up: connect a sticky service restart to core lifecycle recovery.
+- [ ] [T5 — Persistence, battery-optimization client and boot restart](./Tasks/Task-05-PersistenceBatteryOptimizationClientAndBootRestart.md) — follow-up: verify boot-triggered service start actually restores the controller, not just the foreground service.
+- [ ] [T6 — Composition root, state collector and restart-after-kill hardening](./Tasks/Task-06-CompositionRootStateCollectorAndRestartAfterKillHardening.md) — follow-up: restore persisted desired-running state and publish live state after process recreation.
 
 ## Suggested Implementation Order
 

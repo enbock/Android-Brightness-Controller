@@ -1,6 +1,6 @@
 # T6 — Composition root, state collector and restart-after-kill hardening
 
-**Completion:** Complete
+**Completion:** Not completed — reported bug follow-up required
 
 ## Dependencies
 
@@ -30,7 +30,7 @@ The verification criteria are recorded in the `Verify:` clause of the implementa
 
 *Done: implementation commit `bc2008bdc268ddb36a57e1a1220da3f424414d14`.*
 
-- **F5 is now complete (T1–T6).** Wired the whole feature into the `:app` composition root; no
+- **Original implementation note:** wired the original F5 implementation into the `:app` composition root; no
   business logic moved into `:app`, and neither `:core` nor `:infrastructure` changed for T6.
 - Added `BrightnessServiceCollector` (`:app/.../BackgroundService/Collector/`, folder == package like
   the other collectors): a thin, logic-free forwarder of `BrightnessBackgroundService.state` and
@@ -89,3 +89,20 @@ The verification criteria are recorded in the `Verify:` clause of the implementa
   `…AC3_1 AC3_2 AC3_3…`; AC3.4 → T3 `BackgroundServiceUseCaseTest`; AC4.1–AC4.3 → T2
   `BackgroundNotificationBuilderTest` + T4 instrumented test; AC1.2 (swipe-from-recents) and a real
   process kill (AC2.1 on device) are compile-verified only (device required, see above).
+
+## Follow-up — restore controller and observable state after process recreation
+
+- [ ] Reconcile persisted `ControllerStateStore.desiredRunning` when the app graph/service is created
+  after process death. If true, start exactly one F5/F2 lifecycle using persisted F3/F4 settings; if
+  false, leave it stopped. Coordinate with T4's sticky-restart handoff and do not interpret a
+  notification-only `Starting` state as controller recovery.
+- [ ] Ensure a fresh app graph publishes recovered `BackgroundServiceState` and current F2 status to
+  collectors; do not copy a stale in-memory `Running` value. Handle duplicate app, service and resume
+  signals idempotently, and surface failed recovery as a real non-running/error state.
+- **Dependencies:** F5 T4 sticky-restart handoff, F5 T5 persistence, and F2 T5 shared sensor ownership.
+- **Size:** M.
+- **Verification:** unit tests cover desired-running true/false and duplicate restart reconciliation
+  against a persistent fake store. A device/emulator process-kill test (not force-stop) verifies that
+  the restarted FGS and F2 control loop resume, settings persist, fresh values reach the dashboard,
+  and no controller starts when the persisted flag is false. Capture service/process state separately
+  from UI responsiveness; repeat by reopening the Activity and assert the state is current.
